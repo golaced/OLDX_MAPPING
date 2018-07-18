@@ -1,26 +1,120 @@
 function draw_map
 clc;
+clear all;
 close all;
+global select;
+global select_reset;
+global selectr;
+global select_id;
+global N;
+global id;
+global qrx;
+global qry;
+global qryaw;
+global MARK_L;
+global read_num;
+MARK_L=0.1;%/m
+read_num=2;
 figure;
+fig = figure;
 set(gcf,'WindowButtonDownFcn',@ButttonDownFcn);
+set(fig,'windowkeypressfcn',@keypressfcn);
+set(fig,'windowkeyreleasefcn',@keyreleasefcn);
+    function keypressfcn(h,evt)
+        if(evt.Key=='a')
+            s=-5;d=-5;
+        end  
+        if(evt.Key=='d')
+            s=5;d=5;
+        end
+        if(evt.Key=='w')
+            s=-45;
+        end  
+        if(evt.Key=='s')
+            s=45;
+        end  
+       % fprintf('%d',select_reset);
+        if select_reset~=0 %rotate coordinate
+            yaw_off=d;
+            cy=cos(-yaw_off*0.0173);	
+            sy=sin(-yaw_off*0.0173);	
+            for i=1:N
+            qrx(i)=qrx(i)*cy - qry(i)*sy;
+            qry(i)=qrx(i)*sy + qry(i)*cy;
+            qryaw(i)=To_180_degrees(qryaw(i)+s);
+            end
+            fprintf('Rotate Coordinate\n');
+            clf; 
+            for i=1:N
+            pos(1)=qrx(i);
+            pos(2)=qry(i);
+            pos(3)=0;
+            pos(4)=qryaw(i);
+            draw_mark(pos,MARK_L,2,'-k');
+            str = [' ',num2str(id(i))];
+            text(pos(1)+MARK_L/2,pos(2)+MARK_L/2,str,'Color','blue','FontSize',10);
+            hold on;
+            grid on;
+            axis equal;
+            title('Redrawed Marker ');
+            end 
+            ylim=get(gca,'Ylim'); % 获取当前图形的纵轴的范围
+            hold on
+            plot([0,0],ylim,'m--','LineWidth',2); % 绘制x=1的直线
+            xlim=get(gca,'Xlim'); % 获取当前图形的纵轴的范围
+            hold on
+            plot(xlim,[0,0],'m--','LineWidth',2); % 绘制x=1的直线
+            xlabel('Axis-X(m)')
+            ylabel('Axis-Y(m)')
+        end
+        if select_id~=0  %rotate on mark
+            qryaw(select_id)=To_180_degrees(qryaw(select_id)+s);
+            fprintf('Redraw Marker %d Yaw: %f\n',select_id,qryaw(select_id));
+            clf; 
+            for i=1:N
+            pos(1)=qrx(i);
+            pos(2)=qry(i);
+            pos(3)=0;
+            pos(4)=qryaw(i);
+            draw_mark(pos,MARK_L,2,'-k');
+            str = [' ',num2str(id(i))];
+            text(pos(1)+MARK_L/2,pos(2)+MARK_L/2,str,'Color','blue','FontSize',10);
+            hold on;
+            grid on;
+            axis equal;
+            title('Redrawed Marker ');
+            end 
+            ylim=get(gca,'Ylim'); % 获取当前图形的纵轴的范围
+            hold on
+            plot([0,0],ylim,'m--','LineWidth',2); % 绘制x=1的直线
+            xlim=get(gca,'Xlim'); % 获取当前图形的纵轴的范围
+            hold on
+            plot(xlim,[0,0],'m--','LineWidth',2); % 绘制x=1的直线
+            xlabel('Axis-X(m)')
+            ylabel('Axis-Y(m)')
+        end
+    end
+    function keyreleasefcn(h,evt)
+        if(evt.Key=='a')
+            fprintf('la \n');
+        end
+    end
+
 end
 
 function ButttonDownFcn(src,event)
 persistent init;
 global select;
 global select_reset;
-persistent selectr;
-persistent select_id;
+global selectr;
+global select_id;
 global N;
 global id;
 global qrx;
 global qry;
 global qryaw;
-persistent MARK_L;
-persistent read_num;
-MARK_L=0.1;%/m
-read_num=2;
-
+global MARK_L;
+global read_num;
 
 if isempty(selectr)
     selectr=1;
@@ -44,6 +138,7 @@ if isempty(init)
     N=length;
     cnt=2;
     size_am=0.001;
+    size_am=1;
     qrx=SD1(:,cnt)*size_am;cnt=cnt+1; qry=SD1(:,cnt)*size_am;cnt=cnt+1; qrz=SD1(:,cnt)*size_am;cnt=cnt+1; qryaw=SD1(:,cnt);cnt=cnt+1;
     for i=1:N
     pos(1)=qrx(i);
@@ -93,6 +188,9 @@ if(selectr==1)% init finish
          %redraw
          if(select==1&&mid==1)
             select=0; 
+            if select_reset==1
+                select_reset=0;
+            end
             qrx(select_id)=x;
             qry(select_id)=y;
             fprintf('Redraw Marker %d at x:%f y:%f\n',id(select_id),x,y);
@@ -120,7 +218,7 @@ if(selectr==1)% init finish
             ylabel('Axis-Y(m)')
          end  
 
-          if(dis_min<0.2&&select==0&&mid==1)
+          if(dis_min<0.02&&select==0&&mid==1)
             select_id=min_id;
             select=1;
             fprintf('Select Marker %d\n',id(select_id));
